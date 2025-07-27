@@ -36,22 +36,42 @@ export default function Home() {
     event.preventDefault();
     console.log(form)
 
-    //aca metemos los datos del form en la base de datos supabase
-   const {error} = await supabase.from<Student>("students").insert([form])
+    
+    if(editId){
+      //para editar los datos
+      const {error} = await supabase.from<Student>("students").update([ form ]).eq("id", editId)
+      fetchStudents()
+      if(error){
+        toast.error('Error al editar ${error.message}')
+        console.log(error.message);
+      }else{
+        toast.success("Editado exitosamente.")
+      }
 
-    if(error){
-      toast.error('Error al crear ${error.message}')
-      console.log(error.message);
     }else{
-      toast.success("Agregado exitosamente.")
+
+              //aca metemos los datos del form en la base de datos supabase para agregar
+          const {error} = await supabase.from<Student>("students").insert([form])
+          fetchStudents()
+
+          if(error){
+            toast.error('Error al crear ${error.message}')
+            console.log(error.message);
+          }else{
+            toast.success("Agregado exitosamente.")
+          }
+
+          setForm({
+            name:"",
+            email:"",
+            phone_numb:"",
+            gender:"Male"
+          })
+
+
     }
 
-    setForm({
-      name:"",
-     email:"",
-      phone_numb:"",
-      gender:"Male"
-    })
+    
   }
 
   //Con esta funcion mostramos los estudiantes. Agregamos arriga el useeffect con el fetchStudents()
@@ -68,6 +88,47 @@ export default function Home() {
       
     }
   }
+
+// Aca editamos el estudiante
+function handleStudentEdit(student: Student){
+
+  setForm(student)
+  if(student.id){
+    setEditId(student.id)
+  }
+}
+
+//Aca elminamos al estudiante
+async function handleStudentDelete(id: string){
+
+  const result = await Swal.fire({
+
+    title: "Are you sure?",
+    text: "You won't be able to revert this!",
+    icon: "warning",
+    showCancelButton: true,
+    confirmButtonColor: "#3085d6",
+    cancelButtonColor: "#d33",
+    confirmButtonText: "Yes, delete it!"
+
+  })
+
+  if(result.isConfirmed){
+
+    const { error } = await supabase.from<Student>("students").delete().eq("id", id)
+    
+
+    if(error){
+      toast.error('Error al eliminar ${error.message}')
+      console.log(error.message);
+    }else{
+      toast.success("Eliminado exitosamente.")
+      fetchStudents()
+    }
+
+  }
+   
+}
   
   return (
     <>
@@ -112,7 +173,7 @@ export default function Home() {
                         <option value="other">Other</option>
                       </select>
                     </div>
-                    <button className="btn btn-primary w-100">Agregar</button>
+                    <button className="btn btn-primary w-100">{ editId ? "Editar" : "Agregar" }</button>
                    </form>
                 </div>
               </div>
@@ -133,14 +194,14 @@ export default function Home() {
                 <tbody>
                   {
                     students.map( (singleStudent)=>(
-                      <tr>
+                      <tr key={ singleStudent.id }>
                           <td>{singleStudent.name}</td>
                           <td>{singleStudent.email}</td>
                           <td>{singleStudent.phone_numb}</td>
                           <td>{singleStudent.gender}</td>
                           <td>
-                          <button className="btn btn-warning btn-sm me-2">Edit</button>
-                          <button className="btn btn-danger btn-sm me-2">Delete</button>
+                          <button className="btn btn-warning btn-sm me-2" onClick={ () => handleStudentEdit(singleStudent) }>Edit</button>
+                          <button className="btn btn-danger btn-sm me-2" onClick={ () => singleStudent.id && handleStudentDelete(singleStudent.id) }>Delete</button>
                           </td>
                   </tr>
                     ) )
